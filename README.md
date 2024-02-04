@@ -18,7 +18,7 @@ Welcome to the 4-DOF Robot Walker URDF Simulation repository, where we explore t
 
 ## Getting Started
 
-1. **Clone the repository:** `git clone https://github.com/your-username/4dof-robot-walker-pybullet.git`
+1. **Clone the repository:** `git clone https://github.com/shepai/4dof-robot-walker-pybullet.git`
 2. **Follow the setup instructions** in the documentation to install dependencies and set up the simulation environment.
 3. **Explore the URDF model,** experiment with control algorithms, and customize the simulation for your specific needs.
 
