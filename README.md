@@ -14,9 +14,6 @@ Welcome to the 4-DOF Robot Walker URDF Simulation repository, where we explore t
 
 3. **Simulation Environment:** A customizable simulation environment is provided, allowing users to set up different scenarios and conditions for testing their control algorithms. The environment includes support for terrain variations, gravity adjustments, and external disturbances.
 
-4. **Control Algorithm Examples:** The repository includes sample control algorithms for the 4-DOF robot walker. Users can explore and experiment with these algorithms, gaining insights into different control strategies and their effects on the robot's behavior.
-
-5. **Documentation and Tutorials:** Comprehensive documentation is available to guide users through setting up the simulation environment, understanding the URDF model, and implementing or modifying control algorithms. Tutorials provide step-by-step instructions for getting started and exploring advanced features.
 
 ## Getting Started
 
