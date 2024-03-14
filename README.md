@@ -4,7 +4,7 @@
 
 Welcome to the 4-DOF Robot Walker URDF Simulation repository, where we explore the world of robotics simulation using URDF (Unified Robot Description Format) in conjunction with the powerful PyBullet physics engine. This project provides a comprehensive framework for modeling and simulating a 4-degree-of-freedom (4-DOF) robot walker, offering an immersive environment for testing and developing robotic control algorithms.
 
-<img width=50% src="assets/simulation.png">
+<img width=50% src="https://github.com/shepai/Sim-Biped-Walker/blob/main/assets/simulation.png?raw=true">
 
 ## Key Features
 
