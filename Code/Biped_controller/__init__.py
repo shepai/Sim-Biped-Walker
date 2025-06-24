@@ -42,6 +42,7 @@ class Biped:
         num_joints = self.p.getNumJoints(self.robot_id)
 
         if len(positions) != num_joints:
+            print(len(positions),num_joints)
             print("Error: Number of angular positions does not match the number of joints.")
             return
 
