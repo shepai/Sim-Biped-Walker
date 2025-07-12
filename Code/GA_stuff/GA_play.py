@@ -23,7 +23,7 @@ with open(datapath + file, "rb") as f:
 fitnesses=np.load(file.replace("genotypes","fitnesses").replace(".pkl",".npy"))
 top=np.argmax(fitnesses)
 #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n\n\n",fitnesses)
-env=environment(1,300,friction=0.5)
+env=environment(1,300,friction=0.5,filename="C:/Users/dexte/Documents/GitHub/Sim-Biped-Walker/assets/filerecord.mp4")
 #print(model)
 env.reset()
 print("\n\n\n",get_total_mass(env.robot_id))
