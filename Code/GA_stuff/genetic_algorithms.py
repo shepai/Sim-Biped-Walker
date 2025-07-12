@@ -14,6 +14,7 @@ class GA:
         self.best_genos_time=[]
         self.pop=[]
         self.generations=generations
+        self.delay=0
     def initialize_population(self,contr,params):
         self.contr=contr
         self.params=params
@@ -27,7 +28,7 @@ class Hillclimbers(GA):
         fitness_matrix=np.zeros((self.pop_zise))
         history=[]
         for i in range(self.pop_zise): #calculate current fitness of all genotypes
-            fitness__,history_,_=environment.runTrial(self.pop[i],timesteps,fitness=fitness)
+            fitness__,history_,_=environment.runTrial(self.pop[i],timesteps,delay=self.delay,fitness=fitness)
             fitness_matrix[i]=fitness__
         for gen in range(self.generations): #begin actual evolution
             if outputs:
@@ -35,7 +36,7 @@ class Hillclimbers(GA):
             for j in range(self.pop_zise):
                 geno=deepcopy(self.pop[j])
                 geno.mutate()
-                f,history_,_=environment.runTrial(geno,timesteps,fitness=fitness)
+                f,history_,_=environment.runTrial(geno,timesteps,delay=self.delay,fitness=fitness)
                 if f>fitness_matrix[j]:
                     self.pop[j]=deepcopy(geno)
                     fitness_matrix[j]=f
@@ -62,13 +63,13 @@ class Microbial_GA(GA):
                 self.pop[ind1]=deepcopy(self.pop[ind2])
                 if self.sex: self.pop[ind1].sex(self.pop[ind1],self.pop[ind2])
                 self.pop[ind1].mutate() #mutate
-                fitness__,history_,_=environment.runTrial(self.pop[ind1],timesteps,fitness=fitness)
+                fitness__,history_,_=environment.runTrial(self.pop[ind1],timesteps,delay=self.delay,fitness=fitness)
                 fitness_matrix[ind1]=fitness__
             elif fitness_matrix[ind1]>fitness_matrix[ind2]: #selection
                 self.pop[ind2]=deepcopy(self.pop[ind1])
                 self.pop[ind2].mutate() #mutate
                 if self.sex: self.pop[ind2].sex(self.pop[ind2],self.pop[ind1])
-                fitness__,history_,_=environment.runTrial(self.pop[ind2],timesteps,fitness=fitness)
+                fitness__,history_,_=environment.runTrial(self.pop[ind2],timesteps,delay=self.delay,fitness=fitness)
                 fitness_matrix[ind2]=fitness__
             
             history.append(np.max(fitness_matrix))
@@ -80,7 +81,7 @@ class Differential(GA):
         history=[0]
         fitness_matrix=np.zeros((self.pop_zise))
         for i in range(self.pop_zise): #calculate current fitness of all genotypes
-            fitness__,history_,_=environment.runTrial(self.pop[i],timesteps,fitness=fitness)
+            fitness__,history_,_=environment.runTrial(self.pop[i],timesteps,delay=self.delay,fitness=fitness)
             fitness_matrix[i]=fitness__
         for gen in range(self.generations):
             if outputs:
@@ -95,7 +96,7 @@ class Differential(GA):
                 #crossover
                 mutant=self.pop[i].sex(self.pop[i],dummy)
                 #selection
-                trial_fitness,history_,_=environment.runTrial(mutant,timesteps,fitness=fitness)
+                trial_fitness,history_,_=environment.runTrial(mutant,timesteps,delay=self.delay,fitness=fitness)
                 if trial_fitness>fitness_matrix[i]:
                     fitness_matrix[i]=trial_fitness
                     self.pop[i]=deepcopy(mutant)
