@@ -24,9 +24,9 @@ class Biped:
     def getPos(self):
         position, orientation = self.p.getBasePositionAndOrientation(self.robot_id)
         return position
-    def positions(self):
+    def getPos(self):
         num_joints = self.p.getNumJoints(self.robot_id)
-
+        
         angular_positions = []
         for i in range(num_joints):
             joint_info = self.p.getJointInfo(self.robot_id, i)
@@ -45,7 +45,7 @@ class Biped:
             print(len(positions),num_joints)
             print("Error: Number of angular positions does not match the number of joints.")
             return
-
+        positions=np.radians(positions)
         for i in range(num_joints):
             joint_info = self.p.getJointInfo(self.robot_id, i)
             joint_type = joint_info[2]
@@ -84,6 +84,21 @@ robot_urdf_path = path+"urdf/walker_assembly.urdf"  # Replace with the actual pa
 sys.path.append("/its/home/drs25/Documents/GitHub/Sim-Biped-Walker/Code/")
 def demo(variable,history={}):
     return 0
+
+def get_total_mass(body_id):
+    num_joints = p.getNumJoints(body_id)
+    total_mass = 0.0
+    
+    # Base link (index -1)
+    mass_base = p.getDynamicsInfo(body_id, -1)[0]
+    total_mass += mass_base
+
+    # All other links
+    for i in range(num_joints):
+        mass_link = p.getDynamicsInfo(body_id, i)[0]
+        total_mass += mass_link
+
+    return total_mass
 class environment:
     def __init__(self,show=False,record=False,filename="",friction=0.5):
         self.show=show
@@ -133,6 +148,7 @@ class environment:
         initial_orientation = p.getQuaternionFromEuler([0, 0, 0])  # No rotation (Euler angles to quaternion)
         flags = p.URDF_USE_SELF_COLLISION
         self.robot_id = p.loadURDF(robot_urdf_path, initial_position, initial_orientation,flags=flags)
+        p.changeDynamics(self.robot_id, -1, mass=5.0)
         p.changeDynamics(self.robot_id, -1, lateralFriction=self.friction)
         self.quad=Biped(p,self.robot_id,self.plane_id)
         self.quad.neutral=[0,0,0,0]
@@ -194,7 +210,6 @@ class environment:
             basePos, baseOrn = p.getBasePositionAndOrientation(self.robot_id) # Get model position
             p.resetDebugVisualizerCamera( cameraDistance=0.3, cameraYaw=75, cameraPitch=-20, cameraTargetPosition=basePos) # fix camera onto model
             if self.quad.hasFallen():
-                
                 break
         return motor_positions
     def stop(self):
