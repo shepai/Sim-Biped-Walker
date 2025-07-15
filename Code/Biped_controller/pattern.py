@@ -25,7 +25,7 @@ class sinBot:
             motor_positions.append([H,L])
         self.t+=self.dt
         motor_positions=np.array(motor_positions).flatten()
-        return np.array([motor_positions[0],motor_positions[2],motor_positions[1],motor_positions[3]]).flatten()
+        return np.array([motor_positions[1],motor_positions[0],motor_positions[3],motor_positions[2]]).flatten()
     def mutate(self,rate=0.2):
         probailities=np.random.random(self.geno.shape)
         self.geno[np.where(probailities<rate)]+=np.random.normal(0,4,self.geno[np.where(probailities<rate)].shape)
