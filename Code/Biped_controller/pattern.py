@@ -28,7 +28,7 @@ class sinBot:
         return np.array([motor_positions[1],motor_positions[0],motor_positions[3],motor_positions[2]]).flatten()
     def mutate(self,rate=0.2):
         probailities=np.random.random(self.geno.shape)
-        self.geno[np.where(probailities<rate)]+=np.random.normal(0,4,self.geno[np.where(probailities<rate)].shape)
+        self.geno[np.where(probailities<rate)]+=np.random.normal(0,1,self.geno[np.where(probailities<rate)].shape)
         self.set_genotype(self.geno)
     def sex(self,geno1,geno2,prob_winning=0.6):
         probabilities=np.random.random(len(self.geno))
@@ -40,7 +40,7 @@ class sinBot:
         self.hip_geno=values[0:4]
         self.leg_geno=values[4:8]
         self.phase=values[8:]
-        self.hip_geno=np.clip(self.hip_geno,-4,4)
-        self.leg_geno=np.clip(self.leg_geno,-4,4)
+        self.hip_geno=np.clip(self.hip_geno,-2,2)
+        self.leg_geno=np.clip(self.leg_geno,-2,2)
         self.phase=np.clip(self.hip_geno,-1,1)
 
