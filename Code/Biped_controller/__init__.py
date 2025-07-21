@@ -148,7 +148,7 @@ class environment:
         initial_orientation = p.getQuaternionFromEuler([0, 0, 0])  # No rotation (Euler angles to quaternion)
         flags = p.URDF_USE_SELF_COLLISION
         self.robot_id = p.loadURDF(robot_urdf_path, initial_position, initial_orientation,flags=flags)
-        p.changeDynamics(self.robot_id, -1, mass=5.0)
+        #p.changeDynamics(self.robot_id, -1, mass=1.0)
         p.changeDynamics(self.robot_id, -1, lateralFriction=self.friction)
         self.quad=Biped(p,self.robot_id,self.plane_id)
         self.quad.neutral=[0,0,0,0]
