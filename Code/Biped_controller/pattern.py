@@ -140,7 +140,7 @@ class simple:
         return self.pattern[int(self.T)]
     def mutate(self,rate=0.2):
         probailities=np.random.random(self.geno.shape)
-        self.geno[np.where(probailities<rate)]+=np.random.choice((-20,20,0),size=self.geno[np.where(probailities<rate)].shape)
+        self.geno[np.where(probailities<rate)]=np.random.choice((-20,20,0),size=self.geno[np.where(probailities<rate)].shape)
         self.pattern=self.geno.reshape((10,4))
     def sex(self,geno1,geno2,prob_winning=0.6):
         probabilities=np.random.random(len(self.geno))
