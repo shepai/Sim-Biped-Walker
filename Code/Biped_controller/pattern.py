@@ -99,7 +99,7 @@ class CTRNNBiped:
         oscillation = np.sin(self.phases)
 
         # Compute motor commands (combine CTRNn output and oscillation)
-        motor_commands = np.concatenate((self.outputs[0:2],self.outputs[0:2])) + 0.5 * oscillation
+        motor_commands = np.concatenate((self.outputs[0:2],-1*self.outputs[0:2])) + 0.5 * oscillation
         return np.clip(motor_commands, 0, 1)*self.height  # Return motor positions (normalized)
     def set_genotype(self, values):
         """Set CTRNN parameters from an evolutionary genotype."""
@@ -127,3 +127,26 @@ class CTRNNBiped:
         geno2.geno[np.where(probabilities<prob_winning)]=geno1.geno[np.where(probabilities<prob_winning)]
         geno2.set_genotype(geno2.geno)
         return geno2
+
+class simple:
+    def __init__(self,num_legs=2, num_motors_per_leg=2,dt=0.05,imu=False):
+        self.pattern=new_array = np.random.choice((-20,20,0), size=(10,4))
+        self.T=0
+        self.dt=dt
+        self.geno=self.pattern.flatten()
+    def get_positions(self,inputs=0,motors=None):
+        self.T+=self.dt
+        if int(self.T)>=10: self.T=0
+        return self.pattern[int(self.T)]
+    def mutate(self,rate=0.2):
+        probailities=np.random.random(self.geno.shape)
+        self.geno[np.where(probailities<rate)]+=np.random.choice((-20,20,0),size=self.geno[np.where(probailities<rate)].shape)
+        self.pattern=self.geno.reshape((10,4))
+    def sex(self,geno1,geno2,prob_winning=0.6):
+        probabilities=np.random.random(len(self.geno))
+        geno2.geno[np.where(probabilities<prob_winning)]=geno1.geno[np.where(probabilities<prob_winning)]
+        geno2.set_genotype(geno2.geno)
+        return geno2
+    def set_genotype(self,values):
+        self.geno=values
+        self.pattern=self.geno.reshape((10,4))
