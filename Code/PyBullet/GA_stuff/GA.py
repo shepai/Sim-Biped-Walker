@@ -3,9 +3,9 @@ if __name__=="__main__":
     sys.path.insert(1,"/its/home/drs25/Documents/GitHub/Sim-Biped-Walker/Code/")
     sys.path.insert(1,"C:/Users/dexte/Documents/GitHub/Sim-Biped-Walker/Code")
 datapath="/its/home/drs25/Documents/GitHub/Sim-Biped-Walker/"
-datapath="C:/Users/dexte/Documents/GitHub/Sim-Biped-Walker/"
+#datapath="C:/Users/dexte/Documents/GitHub/Sim-Biped-Walker/"
 
-from Biped_controller.pattern import sinBot
+from Biped_controller.pattern import sinBot, CTRNNBiped, simple
 import time
 from copy import deepcopy
 import pickle
@@ -88,7 +88,30 @@ def RUN_hillclimber(dt=0.1,sho=0,trial=0,generations=300,fit=F3,fric=0.5):
     population_size=50
     mutation_rate=0.2
     ga=Hillclimbers(population_size, generations, 0.2)
-    ga.initialize_population(sinBot, [2,2,0.1,0])
+    ga.initialize_population(CTRNNBiped, [2,2,0.1,0])
+    #ga.delay=1
+    history,fitnesses=ga.evolve(env, fit, 20,outputs=1)
+    t_start=time.time()
+    #get fitnesses
+    with open(datapath+'/models/genotypes_dt'+str(dt)+"_"+str(trial)+str(fric)+'.pkl', 'wb') as f:
+        pickle.dump(ga.pop, f)
+    np.save(datapath+'/models/fitnesses_dt'+str(dt)+"_"+str(trial)+str(fric),fitnesses)
+    np.save(datapath+'/models/history_dt'+str(dt)+"_"+str(trial)+str(fric),history)
+
+    env.runTrial(ga.pop[np.where(fitnesses==np.max(fitnesses))[0][0]],150,fitness=fit)
+    print("top fitness:",np.max(fitnesses))
+    env.close()
+
+    t_passed=time.time()-t_start
+    print("********************************\n\n\n\nTIME IT TOOK:",t_passed/(60*60),"Hours")
+
+def RUN_microbial(dt=0.1,sho=0,trial=0,generations=300,fit=F3,fric=0.5):
+    env=environment(sho,generations,friction=fric)
+    env.dt=dt
+    population_size=15
+    mutation_rate=0.2
+    ga=Microbial_GA(population_size, generations, 0.2)
+    ga.initialize_population(simple, [2,2,0.1,0])
     #ga.delay=1
     history,fitnesses=ga.evolve(env, fit, 20,outputs=1)
     t_start=time.time()
@@ -105,8 +128,8 @@ def RUN_hillclimber(dt=0.1,sho=0,trial=0,generations=300,fit=F3,fric=0.5):
     t_passed=time.time()-t_start
     print("********************************\n\n\n\nTIME IT TOOK:",t_passed/(60*60),"Hours")
 if __name__=="__main__":
-    for i in range(20):
+    for i in range(1,20):
         #RUN_microbial(dt=0.1,sho=0,generations=300,trial="LongMicrobial_"+str(i)+"_friction",fit=F3,fric=0.5)
-        RUN_hillclimber(dt=0.1,sho=0,generations=200,trial="Hillclimber_F1_"+str(i)+"_friction",fit=F1,fric=0.5)
+        RUN_microbial(dt=0.05,sho=0,generations=500,trial="simple_larger"+str(i)+"_friction",fit=F3,fric=0.1)
         #RUN_hillclimber(dt=0.1,sho=0,generations=300,trial="Hillclimber_F2_"+str(i)+"_friction",fit=F2,fric=0.5)
-        #RUN_hillclimber(dt=0.1,sho=0,generations=300,trial="Hillclimber_F3_"+str(i)+"_friction",fit=F3,fric=0.5)
+        #RUN_hillclimber(dt=0.05,sho=0,generations=150,trial="small"+str(i)+"_friction",fit=F2,fric=0.1)

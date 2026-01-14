@@ -1,0 +1,38 @@
+<mujoco model="walker_assembly">
+  <compiler angle="radian"/>
+
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="../meshes/base_link.STL"/>
+    <mesh name="hipA" content_type="model/stl" file="../meshes/hipA.STL"/>
+    <mesh name="footA" content_type="model/stl" file="../meshes/footA.STL"/>
+    <mesh name="hipB" content_type="model/stl" file="../meshes/hipB.STL"/>
+    <mesh name="footB" content_type="model/stl" file="../meshes/footB.STL"/>
+  </asset>
+
+  <worldbody>
+  <body name="robot_root" pos="0 0 1.0">
+      <joint type="free" name="root"/>
+    <geom type="mesh" rgba="0.89412 0.91373 0.92941 1" mesh="base_link" contype="1" conaffinity="1"/>
+    <body name="hipA" pos="-0.0247156 0.0484689 -0.081">
+      <inertial pos="-0.00065839 0.0066104 0.0024618" quat="1 0 0 0.000962944" mass="0.03832" diaginertia="3.1302e-05 1.8239e-05 1.6784e-05"/>
+      <joint name="hip_a" pos="0 0 0" axis="0 0 1" range="-3 3" actuatorfrcrange="-10 10"/>
+      <geom type="mesh" rgba="0.89412 0.91373 0.92941 1" mesh="hipA" contype="1" conaffinity="1"/>
+      <body name="footA" pos="0.0218049 -0.0145258 -0.0480205">
+        <inertial pos="-0.032552 0.015574 -0.0049319" quat="0.472692 0.525598 -0.496639 0.503645" mass="0.058051" diaginertia="2.53046e-05 1.60658e-05 1.36186e-05"/>
+        <joint name="foot_a" pos="0 0 0" axis="0.00192582 -0.999998 0" range="-3 3" actuatorfrcrange="-10 10"/>
+        <geom type="mesh" rgba="0.082353 0.082353 0.082353 1" mesh="footA" contype="1" conaffinity="1"/>
+      </body>
+    </body>
+    <body name="hipB" pos="0.0246839 0.0487666 -0.081">
+      <inertial pos="-0.00042934 0.0076229 0.0024618" quat="0.999604 0 0 0.0281282" mass="0.03832" diaginertia="3.13023e-05 1.82387e-05 1.6784e-05"/>
+      <joint name="hip_b" pos="0 0 0" axis="0 0 1" range="-3 3" actuatorfrcrange="-10 10"/>
+      <geom type="mesh" rgba="0.89412 0.91373 0.92941 1" mesh="hipB" contype="1" conaffinity="1"/>
+      <body name="footB" pos="0.00183572 -0.0261381 -0.0479323">
+        <inertial pos="0.00864469 0.0288397 -0.00520636" quat="0.489462 0.511922 -0.510726 0.487362" mass="0.058051" diaginertia="2.53049e-05 1.60655e-05 1.36185e-05"/>
+        <joint name="foot_b" pos="0 0 0" axis="0.0562337 -0.998418 0" range="-3 3" actuatorfrcrange="-10 10"/>
+        <geom type="mesh" rgba="0.0823529 0.0823529 0.0823529 1" mesh="footB" contype="1" conaffinity="1"/>
+      </body>
+    </body>
+    </body>
+  </worldbody>
+</mujoco>

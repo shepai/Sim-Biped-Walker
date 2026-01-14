@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com)
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="walker_assembly">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.00028313 0.029706 -0.035079"
+        rpy="0 0 0" />
+      <mass
+        value="0.14933" />
+      <inertia
+        ixx="4.0229E-05"
+        ixy="-1.2116E-11"
+        ixz="2.4938E-11"
+        iyy="4.9381E-05"
+        iyz="2.8162E-07"
+        izz="5.1205E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89412 0.91373 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="hipA">
+    <inertial>
+      <origin
+        xyz="-0.00065839 0.0066104 0.0024618"
+        rpy="0 0 0" />
+      <mass
+        value="0.03832" />
+      <inertia
+        ixx="3.1302E-05"
+        ixy="2.5158E-08"
+        ixz="4.4264E-21"
+        iyy="1.8239E-05"
+        iyz="-1.6484E-21"
+        izz="1.6784E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/hipA.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89412 0.91373 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/hipA.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_a"
+    type="revolute">
+    <origin
+      xyz="-0.0247155567804533 0.048468896527569 -0.0809999999999931"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="hipA" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="10"
+      velocity="10" />
+  </joint>
+  <link
+    name="footA">
+    <inertial>
+      <origin
+        xyz="-0.032552 0.015574 -0.0049319"
+        rpy="0 0 0" />
+      <mass
+        value="0.058051" />
+      <inertia
+        ixx="1.6057E-05"
+        ixy="1.4647E-07"
+        ixz="1.0225E-09"
+        iyy="1.3652E-05"
+        iyz="-5.3564E-07"
+        izz="2.528E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/footA.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.082353 0.082353 0.082353 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/footA.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="foot_a"
+    type="revolute">
+    <origin
+      xyz="0.0218049273648607 -0.0145257918813619 -0.0480205336113101"
+      rpy="0 0 0" />
+    <parent
+      link="hipA" />
+    <child
+      link="footA" />
+    <axis
+      xyz="0.00192582073503568 -0.999998145605529 0" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="10"
+      velocity="10" />
+  </joint>
+  <link
+    name="hipB">
+    <inertial>
+      <origin
+        xyz="-0.00042934 0.0076229 0.0024618"
+        rpy="0 0 0" />
+      <mass
+        value="0.03832" />
+      <inertia
+        ixx="3.1261E-05"
+        ixy="7.3346E-07"
+        ixz="-2.3595E-21"
+        iyy="1.828E-05"
+        iyz="-3.6697E-21"
+        izz="1.6784E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/hipB.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89412 0.91373 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/hipB.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="hip_b"
+    type="revolute">
+    <origin
+      xyz="0.0246838741462257 0.0487666283212033 -0.0810000000000223"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="hipB" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="10"
+      velocity="10" />
+  </joint>
+  <link
+    name="footB">
+    <inertial>
+      <origin
+        xyz="0.00864469276359951 0.02883967419004 -0.00520636014884891"
+        rpy="0 0 0" />
+      <mass
+        value="0.0580510112590539" />
+      <inertia
+        ixx="1.60655922884674E-05"
+        ixy="-3.78189030512878E-09"
+        ixz="3.01135932722698E-08"
+        iyy="1.36429963781113E-05"
+        iyz="-5.34820537708287E-07"
+        izz="2.52802462534402E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/footB.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.0823529411764706 0.0823529411764706 0.0823529411764706 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="meshes/footB.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="foot_b"
+    type="revolute">
+    <origin
+      xyz="0.00183571654405214 -0.0261381309858644 -0.0479322565024039"
+      rpy="0 0 0" />
+    <parent
+      link="hipB" />
+    <child
+      link="footB" />
+    <axis
+      xyz="0.0562336511609792 -0.998417636301115 0" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="10"
+      velocity="10" />
+  </joint>
+</robot>

@@ -20,7 +20,7 @@ top=-np.inf
 i=1
 while not error:
     try:
-        file="models/genotypes_dt0.01_Microbial_F3_"+str(i)+"_friction0.5.pkl"
+        file="models/genotypes_dt0.05_simple_larger"+str(i)+"_friction0.1.pkl"
 
         with open(datapath + file, "rb") as f:
             model = pickle.load(f)
@@ -31,16 +31,22 @@ while not error:
             top_geno=model[np.argmax(fitnesses)]
     except FileNotFoundError:
         print(i)
-        error=True
+        if "Microbial" in file == 1:
+            file=file.replace("Microbial","Hillclimber")
+            i=0
+        else:
+            error=True
     i+=1
 print(top)
 
 #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n\n\n",fitnesses)
-env=environment(1,300,friction=0.5,filename=datapath+"/assets/filerecord.mp4")
-#print(model)
+env=environment(1,300,friction=0.1,filename=datapath+"/assets/filerecord.mp4")
+#print(model)]
+env.dt=0.05
 env.reset()
 print("\n\n\n",get_total_mass(env.robot_id))
-env.runTrial(top_geno,1000,delay=0)
+top_geno.set_genotype(top_geno.geno)
+env.runTrial(top_geno,500,delay=0)
 env.close()
 
 print(list(top_geno.geno))
