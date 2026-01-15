@@ -1,7 +1,7 @@
 import mujoco
 import mujoco.viewer
 import time
-
+import numpy as np
 XML="""
 <mujoco>
   <option timestep="0.002"/>
@@ -38,13 +38,18 @@ class Environment:
         f.close()
         self.model = mujoco.MjModel.from_xml_path("/its/home/drs25/Documents/GitHub/Sim-Biped-Walker/URDF_files/walker_assembly/urdf/temp.xml")
         self.data = mujoco.MjData(self.model)
-
+        for i in range(self.model.nu):
+          print(i, mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, i))
     def launch(self):
-        with mujoco.viewer.launch(self.model, self.data) as viewer:
-            for _ in range(1000):
-                mujoco.mj_step(self.model, self.data)
-                viewer.sync()
-                time.sleep(0.01)
+        viewer=mujoco.viewer.launch_passive(self.model, self.data)
+        t = 0
+        while viewer.is_running() and t<100:
+            #self.data.ctrl[0] = 1.0 * np.sin(t)
+            mujoco.mj_step(self.model, self.data)
+            viewer.sync()
+            t += 0.01
+        viewer.close()
+                
 
 
 if __name__ == "__main__":
