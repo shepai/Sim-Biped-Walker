@@ -39,4 +39,29 @@
     </body>
     </body>
   </worldbody>
+  <actuator>
+
+    <!-- Hip motors -->
+    <motor name="hip_a_motor"
+           joint="hip_a"
+           gear="50"
+           ctrlrange="-1 1"/>
+
+    <motor name="hip_b_motor"
+           joint="hip_b"
+           gear="50"
+           ctrlrange="-1 1"/>
+
+    <!-- Foot motors -->
+    <motor name="foot_a_motor"
+           joint="foot_a"
+           gear="30"
+           ctrlrange="-1 1"/>
+
+    <motor name="foot_b_motor"
+           joint="foot_b"
+           gear="30"
+           ctrlrange="-1 1"/>
+
+</actuator>
 </mujoco>
