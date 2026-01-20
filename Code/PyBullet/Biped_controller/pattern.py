@@ -58,7 +58,7 @@ class CTRNNBiped:
         self.outputs = np.zeros(self.num_neurons)  # Motor output (joint angles)
 
         #frequency and phase offsets for oscillatory behavior
-        self.omega = np.random.normal(0.8, 1.2, (self.num_motors,))  # Oscillation frequencies
+        self.omega = np.random.normal(0.8, 1.2, (self.num_legs,))  # Oscillation frequencies
         self.phases = np.linspace(0, 2 * np.pi, self.num_motors, endpoint=False)  # Initial phase
         self.geno=np.concatenate((self.weights.flatten(),self.biases.flatten(),self.tau.flatten(),self.omega.flatten()))
 
@@ -67,6 +67,7 @@ class CTRNNBiped:
         self.Kp_vel = 0.3  # Adjusts knee based on forward velocity
         self.height=1
         self.imu=imu
+        self.t=0
     def sigmoid(self, x):
         x = np.clip(x, -500, 500)
         return 1 / (1 + np.exp(-x))
@@ -94,13 +95,12 @@ class CTRNNBiped:
         #self.activations = arr * (~nan_mask)
         self.outputs = self.sigmoid(self.activations)
 
-        # Add oscillatory gait modulation
-        self.phases += self.dt * self.omega
-        oscillation = np.sin(self.phases)
-
+        other=np.array([[self.omega[i],self.omega[i]] for i in range(len(self.omega))])
         # Compute motor commands (combine CTRNn output and oscillation)
-        motor_commands = np.concatenate((self.outputs[0:2],self.outputs[0:2])) + 0.5 * oscillation
-        return np.clip(motor_commands, 0, 1)*self.height  # Return motor positions (normalized)
+
+        motor_commands = np.sin(self.t+np.concatenate([self.outputs[0:2]] * 2) + other.flatten())
+        self.t+=self.dt
+        return motor_commands*self.height  # Return motor positions (normalized)
     def set_genotype(self, values):
         """Set CTRNN parameters from an evolutionary genotype."""
         num_weights = len(self.weights.flatten())
@@ -118,6 +118,7 @@ class CTRNNBiped:
         self.weights = np.clip(self.weights, -4, 4)  # Cap weight values
         self.omega = np.clip(self.omega, -1, 1)  # Cap weight values
         self.geno=np.concatenate([self.weights.flatten(),self.biases.flatten(),self.tau.flatten(),self.omega.flatten()])
+        self.t=0
     def mutate(self,rate=0.2):
         probailities=np.random.random(self.geno.shape)
         self.geno[np.where(probailities<rate)]+=np.random.normal(0,4,self.geno[np.where(probailities<rate)].shape)
