@@ -4,13 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biped-walker"
-<<<<<<< Updated upstream
-version = "0.2.0"
-description = "MuJoCo simulation, Gymnasium env and RL agents for a 4-DoF biped walker with tactile feet"
-=======
 version = "0.3.0"
 description = "MuJoCo simulation, Gymnasium envs and RL agents for tactile-footed bipeds (4-DoF walker and 8-DoF servo-bracket biped)"
->>>>>>> Stashed changes
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -24,19 +19,11 @@ dependencies = [
 
 [project.optional-dependencies]
 ppo = ["stable-baselines3>=2.2", "torch>=2.0", "tensorboard"]
-<<<<<<< Updated upstream
-examples = ["matplotlib"]
-=======
 examples = ["matplotlib"]   # also used by biped_walker.cad.render
->>>>>>> Stashed changes
 dev = ["pytest"]
 
 [tool.setuptools.packages.find]
 include = ["biped_walker*"]
 
 [tool.setuptools.package-data]
-<<<<<<< Updated upstream
-biped_walker = ["assets/meshes/*.STL"]
-=======
 biped_walker = ["assets/walker4/meshes/*.STL", "assets/biped8/*.json", "assets/biped8/meshes/*.stl"]
->>>>>>> Stashed changes
