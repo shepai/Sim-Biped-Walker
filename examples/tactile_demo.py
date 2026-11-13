@@ -1,10 +1,21 @@
+<<<<<<< Updated upstream
 """Drive the servos directly with the Biped class and plot the 3x5 foot pressure maps."""
+=======
+"""Drive the servos directly with the Biped class and plot the 3x5 foot pressure maps.
+
+    python examples/tactile_demo.py                 # 4-DoF walker
+    python examples/tactile_demo.py --robot biped8 # 8-DoF servo-bracket biped
+"""
+
+import argparse
+>>>>>>> Stashed changes
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from biped_walker import Biped
 
+<<<<<<< Updated upstream
 bot = Biped()
 bot.reset(settle_steps=200)
 snapshots = {}
@@ -12,6 +23,21 @@ for label, target in [("standing", [0, 0, 0, 0]),
                       ("ankles -0.4", [0, -0.4, 0, -0.4]),
                       ("ankles +0.4", [0, 0.4, 0, 0.4])]:
     bot.set_targets(target)
+=======
+p = argparse.ArgumentParser()
+p.add_argument("--robot", default="walker4", choices=["walker4", "biped8"])
+args = p.parse_args()
+
+bot = Biped(args.robot)
+bot.reset(settle_steps=200)
+# Tilt the feet with the ankle roll joints. walker4's ankles roll both feet the
+# same way; biped8's are mirrored, so opposite signs tilt both feet the same way.
+roll = np.array([1.0 if n.endswith("_ankle") or n == "left_ankle_roll" else
+                 -1.0 if n == "right_ankle_roll" else 0.0 for n in bot.joint_names])
+snapshots = {}
+for label, a in [("standing", 0.0), ("ankles -0.5", -0.5), ("ankles +0.5", 0.5)]:
+    bot.set_normalized(a * roll)
+>>>>>>> Stashed changes
     bot.step(500)  # 1 s
     snapshots[label] = bot.tactile()
     print(label, "total load: %.2f N (weight %.2f N)" % (snapshots[label].sum(), bot.total_mass * 9.81))
@@ -26,5 +52,10 @@ for r, (label, tac) in enumerate(snapshots.items()):
         ax.set_title(f"{label}: {name}", fontsize=8)
         ax.set_xticks([]), ax.set_yticks([])
 plt.tight_layout()
+<<<<<<< Updated upstream
 plt.savefig("tactile_demo.png", dpi=150)
 print("saved tactile_demo.png")
+=======
+plt.savefig(f"tactile_demo_{args.robot}.png", dpi=150)
+print(f"saved tactile_demo_{args.robot}.png")
+>>>>>>> Stashed changes

@@ -7,5 +7,9 @@ runs/
 videos/
 *.mp4
 !docs/*.mp4
+<<<<<<< Updated upstream
 tactile_demo.png
+=======
+tactile_demo*.png
+>>>>>>> Stashed changes
 .pytest_cache/

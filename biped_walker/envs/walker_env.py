@@ -12,8 +12,13 @@ import mujoco
 import numpy as np
 from gymnasium import spaces
 
+<<<<<<< Updated upstream
 from ..model import JOINT_NAMES, ModelConfig
 from ..robot import Biped, wrap_angle
+=======
+from ..robot import Biped, wrap_angle
+from ..robots import DEFAULT_ROBOT, get_robot
+>>>>>>> Stashed changes
 
 TASKS = ("forward", "turn", "mixed")
 
@@ -50,16 +55,31 @@ class RewardConfig:
 
 
 class BipedWalkerEnv(gym.Env):
+<<<<<<< Updated upstream
     """Command-conditioned locomotion for the 4-DoF tactile-footed biped.
 
     **Action** (4,): servo targets in ``[-1, 1]``, mapped to each joint's
     range, in order ``(left_hip, left_ankle, right_hip, right_ankle)``.
+=======
+    """Command-conditioned locomotion for the tactile-footed bipeds.
+
+    ``robot`` picks the body: ``"walker4"`` (4-DoF walker, the default) or
+    ``"biped8"`` (8-DoF servo-bracket biped).
+
+    **Action** (n_joints,): servo targets in ``[-1, 1]``, mapped to
+    ``default_pose + action * action_scale`` (see ``self.robot.joint_names``
+    for the order).
+>>>>>>> Stashed changes
 
     **Observation**: the last ``history_len`` frames of
 
     * tactile forces, 2 feet x 3 x 5 taxels = 30 values, scaled by
       ``tactile_max_force`` and clipped to [0, 1];
+<<<<<<< Updated upstream
     * the 4 motor positions, normalised to [-1, 1] over the joint ranges;
+=======
+    * the motor positions in the same normalised units as the action;
+>>>>>>> Stashed changes
 
     followed (if ``include_command``) by the 2 normalised command values
     ``(forward speed, yaw rate)``. The command is needed so one policy can be
@@ -77,12 +97,20 @@ class BipedWalkerEnv(gym.Env):
 
     def __init__(
         self,
+<<<<<<< Updated upstream
+=======
+        robot: str = DEFAULT_ROBOT,
+>>>>>>> Stashed changes
         task: str = "mixed",
         command: Optional[Sequence[float]] = None,
         frame_skip: int = 10,
         history_len: int = 3,
         include_command: bool = True,
+<<<<<<< Updated upstream
         tactile_max_force: float = 1.5,
+=======
+        tactile_max_force: Optional[float] = None,
+>>>>>>> Stashed changes
         tactile_noise: float = 0.0,
         joint_noise: float = 0.0,
         reset_noise: float = 0.05,
@@ -90,7 +118,11 @@ class BipedWalkerEnv(gym.Env):
         max_tilt: float = 0.9,
         commands: Optional[CommandConfig | Dict[str, Any]] = None,
         rewards: Optional[RewardConfig | Dict[str, Any]] = None,
+<<<<<<< Updated upstream
         model_config: Optional[ModelConfig | Dict[str, Any]] = None,
+=======
+        model_config: Optional[Any] = None,
+>>>>>>> Stashed changes
         render_mode: Optional[str] = None,
         width: int = 640,
         height: int = 480,
@@ -99,31 +131,60 @@ class BipedWalkerEnv(gym.Env):
         if task not in TASKS:
             raise ValueError(f"task must be one of {TASKS}, got {task!r}")
         self.task = task
+<<<<<<< Updated upstream
+=======
+        self.robot_name = robot
+        spec = get_robot(robot)
+        defaults = spec.env_defaults
+>>>>>>> Stashed changes
         self.fixed_command = None if command is None else np.asarray(command, dtype=float)
         self.frame_skip = int(frame_skip)
         self.history_len = int(history_len)
         self.include_command = include_command
+<<<<<<< Updated upstream
         self.tactile_max_force = float(tactile_max_force)
+=======
+        self.tactile_max_force = float(tactile_max_force if tactile_max_force is not None
+                                       else defaults.get("tactile_max_force", 1.5))
+>>>>>>> Stashed changes
         self.tactile_noise = float(tactile_noise)
         self.joint_noise = float(joint_noise)
         self.reset_noise = float(reset_noise)
         self.randomize_dynamics = randomize_dynamics
         self.min_up_z = math.cos(max_tilt)
+<<<<<<< Updated upstream
         self.cmd_cfg = commands if isinstance(commands, CommandConfig) else CommandConfig(**(commands or {}))
         self.rew_cfg = rewards if isinstance(rewards, RewardConfig) else RewardConfig(**(rewards or {}))
 
         if isinstance(model_config, dict):
             model_config = ModelConfig.from_dict(model_config)
         self.robot = Biped(model_config)
+=======
+        self.cmd_cfg = (commands if isinstance(commands, CommandConfig)
+                        else CommandConfig(**{**defaults.get("commands", {}), **(commands or {})}))
+        self.rew_cfg = (rewards if isinstance(rewards, RewardConfig)
+                        else RewardConfig(**{**defaults.get("rewards", {}), **(rewards or {})}))
+
+        self.robot = Biped(robot, model_config)
+        self.camera_distance = spec.camera_distance
+>>>>>>> Stashed changes
         self.model, self.data = self.robot.model, self.robot.data
         self.dt = self.robot.timestep * self.frame_skip
         self.metadata = {**self.metadata, "render_fps": int(round(1.0 / self.dt))}
 
         self.n_taxels = int(np.prod(self.robot.tactile_shape))
+<<<<<<< Updated upstream
         self.frame_size = self.n_taxels + len(JOINT_NAMES)
         obs_dim = self.frame_size * self.history_len + (2 if include_command else 0)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(-1.0, 1.0, shape=(len(JOINT_NAMES),), dtype=np.float32)
+=======
+        self.n_joints = self.robot.n_joints
+        self.frame_size = self.n_taxels + self.n_joints
+        obs_dim = self.frame_size * self.history_len + (2 if include_command else 0)
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(obs_dim,), dtype=np.float32)
+        self.action_space = spaces.Box(-1.0, 1.0, shape=(self.n_joints,), dtype=np.float32)
+>>>>>>> Stashed changes
 
         self._cmd_scale = np.array([max(self.cmd_cfg.forward_speed[1], 1e-6),
                                     max(self.cmd_cfg.yaw_rate[1], 1e-6)])
@@ -140,7 +201,11 @@ class BipedWalkerEnv(gym.Env):
 
         self.command = np.zeros(2)
         self._history: deque = deque(maxlen=self.history_len)
+<<<<<<< Updated upstream
         self._prev_action = np.zeros(len(JOINT_NAMES))
+=======
+        self._prev_action = np.zeros(self.n_joints)
+>>>>>>> Stashed changes
         self._steps = 0
         self._energy = 0.0
         self._start_xy = np.zeros(2)
@@ -210,8 +275,13 @@ class BipedWalkerEnv(gym.Env):
             self.model.body_mass[:] = self._nominal_mass * scale
             self.model.body_inertia[:] = self._nominal_inertia * scale[:, None]
 
+<<<<<<< Updated upstream
         q0 = rng.uniform(-self.reset_noise, self.reset_noise, len(JOINT_NAMES))
         self.robot.reset(joint_positions=q0 * self.robot.ctrl_high, settle_steps=50)
+=======
+        noise = rng.uniform(-self.reset_noise, self.reset_noise, self.n_joints) * self.robot.action_scale
+        self.robot.reset(joint_positions=self.robot.default_pose + noise, settle_steps=50)
+>>>>>>> Stashed changes
         mujoco.mj_forward(self.model, self.data)
 
         if "command" in options:
@@ -307,7 +377,11 @@ class BipedWalkerEnv(gym.Env):
         cam = mujoco.MjvCamera()
         cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
         cam.trackbodyid = self.robot.base_id
+<<<<<<< Updated upstream
         cam.distance = 0.6
+=======
+        cam.distance = self.camera_distance
+>>>>>>> Stashed changes
         cam.azimuth = 135.0
         cam.elevation = -20.0
         return cam
@@ -332,7 +406,11 @@ class BipedWalkerEnv(gym.Env):
                 cam = self._viewer.cam
                 cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
                 cam.trackbodyid = self.robot.base_id
+<<<<<<< Updated upstream
                 cam.distance, cam.azimuth, cam.elevation = 0.6, 135.0, -20.0
+=======
+                cam.distance, cam.azimuth, cam.elevation = self.camera_distance, 135.0, -20.0
+>>>>>>> Stashed changes
             if self.colour_taxels:
                 self.robot.colour_taxels(max_force=self.tactile_max_force)
             self._viewer.sync()
@@ -352,4 +430,8 @@ class BipedWalkerEnv(gym.Env):
             self._renderer = None
 
     def config_dict(self) -> Dict[str, Any]:
+<<<<<<< Updated upstream
         return {"task": self.task, "commands": asdict(self.cmd_cfg), "rewards": asdict(self.rew_cfg)}
+=======
+        return {"robot": self.robot_name, "task": self.task, "commands": asdict(self.cmd_cfg), "rewards": asdict(self.rew_cfg)}
+>>>>>>> Stashed changes

@@ -1,9 +1,18 @@
 """Watch and/or record a trained agent.
 
+<<<<<<< Updated upstream
     python examples/visualize.py runs/ppo_mixed/latest
     python examples/visualize.py runs/ppo_mixed/latest --command 0.05 0      # walk forward
     python examples/visualize.py runs/ppo_mixed/latest --command 0 0.4       # turn left on the spot
     python examples/visualize.py runs/es_forward/best --record --no-show --video out.mp4
+=======
+    python examples/visualize.py runs/walker4_ppo_mixed/latest
+    python examples/visualize.py runs/walker4_ppo_mixed/latest --command 0.05 0   # walk forward
+    python examples/visualize.py runs/walker4_ppo_mixed/latest --command 0 0.4    # turn left on the spot
+    python examples/visualize.py runs/biped8_es_forward/best --record --no-show --video out.mp4
+
+The robot (walker4 / biped8) is stored with the agent, so nothing else is needed.
+>>>>>>> Stashed changes
 
 Headless recording: set MUJOCO_GL=egl (GPU) or MUJOCO_GL=osmesa (CPU).
 On macOS the interactive viewer needs ``mjpython`` instead of ``python``.
