@@ -34,6 +34,7 @@ def main():
     p.add_argument("--task", choices=["mixed", "forward", "turn"], default="mixed")
     p.add_argument("--timesteps", type=int, default=3_000_000)
     p.add_argument("--n-envs", type=int, default=8, help="PPO parallel envs")
+    p.add_argument("--device", default="auto", help="PPO torch device: auto (CUDA if available), cpu, cuda, cuda:1 ...")
     p.add_argument("--workers", type=int, default=None, help="ES worker processes")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--history", type=int, default=3, help="frames of tactile+motor history in the obs")
@@ -54,7 +55,8 @@ def main():
         env_kwargs["rewards"] = {"energy": args.energy_weight}
 
     if args.algo == "ppo":
-        agent = make_agent("ppo", env_id=env_id, env_kwargs=env_kwargs, seed=args.seed, n_envs=args.n_envs)
+        agent = make_agent("ppo", env_id=env_id, env_kwargs=env_kwargs, seed=args.seed, n_envs=args.n_envs,
+                           device=args.device)
     else:
         agent = make_agent("es", env_id=env_id, env_kwargs=env_kwargs, seed=args.seed, n_workers=args.workers)
 

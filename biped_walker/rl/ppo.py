@@ -120,6 +120,11 @@ class PPOAgent(BaseRLAgent):
         logger = self._start_run(total_timesteps, log_dir, run_name, video_every, video_episodes,
                                  video_steps, progress_bar, start_timesteps=start)
         self.run_dir = logger.dir
+        import torch
+        dev = self.model.device
+        gpu = f" ({torch.cuda.get_device_name(dev)})" if dev.type == "cuda" else ""
+        logger.text(f"PPO policy on {dev}{gpu} (device={self.device!r}); simulation runs on the CPU "
+                    f"in {self.n_envs} env process(es)", echo=True)
         if logger.dir is not None:
             try:
                 import tensorboard  # noqa: F401
