@@ -1,3 +1,12 @@
-
-Code/Biped_controller/__pycache__/__init__.cpython-310.pyc
 *.pyc
+__pycache__/
+*.egg-info/
+build/
+dist/
+runs/
+logs/
+videos/
+*.mp4
+!docs/*.mp4
+tactile_demo*.png
+.pytest_cache/
