@@ -93,8 +93,11 @@ def _init_worker(factory: EnvFactory, policy_args: Tuple) -> None:
 
 
 def _rollout(job):
-    params, mean, std, seed, max_steps, clip = job
+    params, mean, std, seed, max_steps, clip, progress = job
     env, policy = _WORKER["env"], _WORKER["policy"]
+    base = env.unwrapped
+    if hasattr(base, "set_training_progress"):
+        base.set_training_progress(progress)       # robustness curriculum
     obs, _ = env.reset(seed=int(seed))
     total, steps = 0.0, 0
     s = np.zeros_like(mean)
@@ -192,6 +195,7 @@ class ESAgent(BaseRLAgent):
             _init_worker(self.env_factory, policy_args)
             run = lambda f, jobs: list(map(f, jobs))  # noqa: E731
 
+        start = self.timesteps
         target = self.timesteps + int(total_timesteps)
         gen = len(self.train_history)
         try:
@@ -201,11 +205,12 @@ class ESAgent(BaseRLAgent):
                 eps = self.rng.standard_normal((half, self.theta.size))
                 seeds = self.rng.integers(0, 2 ** 31 - 1, size=half)
                 mean, std = self.obs_norm.mean, self.obs_norm.std
+                progress = (self.timesteps - start) / max(int(total_timesteps), 1)
                 jobs = []
                 for k in range(half):  # same seed for each antithetic pair
                     for sgn in (1.0, -1.0):
                         jobs.append((self.theta + sgn * self.sigma * eps[k], mean, std, seeds[k],
-                                     self.episode_steps, self.obs_norm.clip))
+                                     self.episode_steps, self.obs_norm.clip, progress))
                 results = run(_rollout, jobs)
 
                 returns = np.array([r[0] for r in results]).reshape(half, 2)
@@ -237,6 +242,7 @@ class ESAgent(BaseRLAgent):
                         "pop_return_min": float(returns.min()), "pop_return_std": float(returns.std()),
                         "grad_norm": float(np.linalg.norm(grad)), "param_norm": float(np.linalg.norm(self.theta)),
                         "sigma": self.sigma, "lr": self.lr,
+                        "curriculum_level": self.curriculum_level(progress),
                     })
                     logger.maybe_save_best(self.timesteps)
                 logger.handle_milestones(self.timesteps)

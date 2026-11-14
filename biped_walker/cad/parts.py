@@ -1,4 +1,4 @@
-"""Python mirror of ``cad/biped8/biped8_parts.scad``.
+"""Python mirror of ``cad/biped10/biped10_parts.scad``.
 
 Each function builds the same solid as the OpenSCAD module of the same name
 (units: mm, same frames), so the simulation meshes can be generated without
@@ -97,36 +97,45 @@ def foot_plate():
     return plate_xy(shape, (-45, 55, -30, 30), 0, T, RES)
 
 
+# ---------------------------------------------------------------- yaw plate
+def yaw_plate():
+    """Plate on the hip-yaw horn that carries the hip-roll servo bracket (servo frame)."""
+    shape = difference(rounded_rect(-14, 34, -26, 26, 4), circle(0, 0, 1.6), holes(_ring(8), 1.4),
+                       holes([(-7, -18), (-7, 18), (28, -18), (28, 18), (10, -6), (10, 6), (22, -6), (22, 6)], 1.6),
+                       circle(16, -16, 4), circle(16, 16, 4))
+    return plate_xy(shape, (-14, 34, -26, 26), 0, T, RES)
+
+
 # -------------------------------------------------------------------- body
-def pelvis():
-    top = difference(rect(-30, 30, -62, 62), holes(grid(-20, 20, -50, 50, 20), 2.5))
-    flange = difference(rect(-62, 62, 16, 40), holes(grid(-50.8, 50.8, 30, 30, 12.7), 2.2))
-    return merge(
-        plate_xy(top, (-30, 30, -62, 62), 14, T, RES),
-        plate_yz(flange, (-62, 62, 16, 40), -30, T, RES),
-        plate_yz(flange, (-62, 62, 16, 40), 28, T, RES),
-    )
+# Body box (robot frame, mm): x -44..44, y -62..62, z 38..132. The two hip-yaw
+# servos stand inside it on their mounting tabs, shafts pointing down through
+# cut-outs in the floor.
+YAW_CUTOUT_Y = (11.0, 52.7)   # floor cut-out for each yaw servo case, |y| range
 
 
 def chassis_frame():
-    tb = difference(rect(-44, 44, -47, 47), holes(grid(-31.75, 31.75, -31.75, 31.75, 12.7), 2.2))
+    floor = difference(rect(-44, 44, -62, 62), holes(grid(-31.75, 31.75, -6.35, 6.35, 12.7), 2.2),
+                       holes(grid(-31.75, 31.75, -57.15, -57.15, 12.7), 2.2),
+                       holes(grid(-31.75, 31.75, 57.15, 57.15, 12.7), 2.2),
+                       rect(-10.3, 10.3, *YAW_CUTOUT_Y), rect(-10.3, 10.3, -YAW_CUTOUT_Y[1], -YAW_CUTOUT_Y[0]))
+    top = difference(rect(-44, 44, -62, 62), holes(grid(-31.75, 31.75, -50.8, 50.8, 12.7), 2.2))
     side = difference(rect(-44, 44, 40, 130), holes(grid(-31.75, 31.75, 47, 123, 12.7), 2.2))
     return merge(
-        plate_xy(tb, (-44, 44, -47, 47), 38, T, RES),
-        plate_xy(tb, (-44, 44, -47, 47), 130, T, RES),
-        plate_xz(side, (-44, 44, 40, 130), 45, T, RES),
-        plate_xz(side, (-44, 44, 40, 130), -47, T, RES),
+        plate_xy(floor, (-44, 44, -62, 62), 38, T, RES),
+        plate_xy(top, (-44, 44, -62, 62), 130, T, RES),
+        plate_xz(side, (-44, 44, 40, 130), 60, T, RES),
+        plate_xz(side, (-44, 44, 40, 130), -62, T, RES),
     )
 
 
 def chassis_plates():
-    shape = difference(rect(-45, 45, 40, 130), holes(grid(-38.1, 38.1, 46.35, 122.55, 12.7), 2.2))
-    return merge(plate_yz(shape, (-45, 45, 40, 130), 44, T, RES),
-                 plate_yz(shape, (-45, 45, 40, 130), -46, T, RES))
+    shape = difference(rect(-60, 60, 40, 130), holes(grid(-50.8, 50.8, 46.35, 122.55, 12.7), 2.2))
+    return merge(plate_yz(shape, (-60, 60, 40, 130), 44, T, RES),
+                 plate_yz(shape, (-60, 60, 40, 130), -46, T, RES))
 
 
 def battery():
-    return box(-35, 30, -38, 38, 42, 85)
+    return box(-35, 30, -38, 38, 70, 113)
 
 
 def pcb():
@@ -156,9 +165,9 @@ PARTS: Dict[str, PartDef] = {
     "bracket_multi": PartDef(bracket_multi, BLACK_AL, density=ALUMINIUM, description="multi-purpose servo bracket"),
     "u_bracket_24": PartDef(lambda: u_bracket(24), BLACK_AL, density=ALUMINIUM, description="short U bracket (24 mm)"),
     "u_bracket_30": PartDef(lambda: u_bracket(30), BLACK_AL, density=ALUMINIUM, description="medium U bracket (30 mm)"),
-    "u_bracket_36": PartDef(lambda: u_bracket(36), BLACK_AL, density=ALUMINIUM, description="long U bracket (36 mm)"),
+    "u_bracket_42": PartDef(lambda: u_bracket(42), BLACK_AL, density=ALUMINIUM, description="long U bracket (42 mm)"),
+    "yaw_plate": PartDef(yaw_plate, BLACK_AL, density=ALUMINIUM, description="hip-yaw output plate"),
     "foot_plate": PartDef(foot_plate, BLACK_AL, density=ALUMINIUM, description="foot sole plate"),
-    "pelvis": PartDef(pelvis, BLACK_AL, density=ALUMINIUM, description="waist U-beam"),
     "chassis_frame": PartDef(chassis_frame, SILVER, density=ALUMINIUM, description="body frame"),
     "chassis_plates": PartDef(chassis_plates, ORANGE, density=ALUMINIUM, description="front/back plates"),
     "battery": PartDef(battery, (0.16, 0.17, 0.2, 1.0), mass=250.0, description="2S LiPo + regulator"),

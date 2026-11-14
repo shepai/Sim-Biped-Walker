@@ -2,7 +2,7 @@
 
 from gymnasium.envs.registration import register, registry
 
-from .model import (FOOT_NAMES, JOINT_NAMES, Biped8Config, ModelConfig, TactileConfig, Walker4Config,
+from .model import (FOOT_NAMES, JOINT_NAMES, Biped10Config, ModelConfig, TactileConfig, Walker4Config,
                     build_mjcf, write_mjcf)
 from .robots import ROBOTS, get_robot
 
@@ -12,9 +12,9 @@ _ENVS = {
     "SimBiped-v0": {"robot": "walker4", "task": "mixed"},
     "SimBiped-Forward-v0": {"robot": "walker4", "task": "forward"},
     "SimBiped-Turn-v0": {"robot": "walker4", "task": "turn"},
-    "SimBiped8-v0": {"robot": "biped8", "task": "mixed"},
-    "SimBiped8-Forward-v0": {"robot": "biped8", "task": "forward"},
-    "SimBiped8-Turn-v0": {"robot": "biped8", "task": "turn"},
+    "SimBiped10-v0": {"robot": "biped10", "task": "mixed"},
+    "SimBiped10-Forward-v0": {"robot": "biped10", "task": "forward"},
+    "SimBiped10-Turn-v0": {"robot": "biped10", "task": "turn"},
 }
 ENV_IDS = {(kw["robot"], kw["task"]): env_id for env_id, kw in _ENVS.items()}
 for _id, _kw in _ENVS.items():
@@ -35,5 +35,5 @@ def __getattr__(name):
 
 
 __all__ = ["Biped", "BipedWalkerEnv", "EnvFactory", "make_env", "ModelConfig", "Walker4Config",
-           "Biped8Config", "ROBOTS", "ENV_IDS", "get_robot", "TactileConfig",
+           "Biped10Config", "ROBOTS", "ENV_IDS", "get_robot", "TactileConfig",
            "CommandConfig", "RewardConfig", "build_mjcf", "write_mjcf", "JOINT_NAMES", "FOOT_NAMES"]

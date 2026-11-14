@@ -5,7 +5,7 @@
     python examples/visualize.py logs/<run>/best --command 0 0.4    # turn left on the spot
     python examples/visualize.py logs/<run>/checkpoints/050pct --record --no-show --video out.mp4
 
-The robot (walker4 / biped8) is stored with the agent, so nothing else is needed.
+The robot (walker4 / biped10) is stored with the agent, so nothing else is needed.
 
 Headless recording: set MUJOCO_GL=egl (GPU) or MUJOCO_GL=osmesa (CPU).
 On macOS the interactive viewer needs ``mjpython`` instead of ``python``.

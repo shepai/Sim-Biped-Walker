@@ -1,7 +1,7 @@
 """Drive the servos directly with the Biped class and plot the 3x5 foot pressure maps.
 
     python examples/tactile_demo.py                 # 4-DoF walker
-    python examples/tactile_demo.py --robot biped8 # 8-DoF servo-bracket biped
+    python examples/tactile_demo.py --robot biped10 # 10-DoF servo-bracket biped
 """
 
 import argparse
@@ -12,13 +12,13 @@ import numpy as np
 from biped_walker import Biped
 
 p = argparse.ArgumentParser()
-p.add_argument("--robot", default="walker4", choices=["walker4", "biped8"])
+p.add_argument("--robot", default="walker4", choices=["walker4", "biped10"])
 args = p.parse_args()
 
 bot = Biped(args.robot)
 bot.reset(settle_steps=200)
 # Tilt the feet with the ankle roll joints. walker4's ankles roll both feet the
-# same way; biped8's are mirrored, so opposite signs tilt both feet the same way.
+# same way; biped10's are mirrored, so opposite signs tilt both feet the same way.
 roll = np.array([1.0 if n.endswith("_ankle") or n == "left_ankle_roll" else
                  -1.0 if n == "right_ankle_roll" else 0.0 for n in bot.joint_names])
 snapshots = {}

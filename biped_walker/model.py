@@ -8,14 +8,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from .robots import ROBOTS, get_robot
-from .robots.biped8 import Biped8Config
+from .robots.biped10 import Biped10Config
 from .robots.common import TactileConfig, taxel_name
 from .robots.walker4 import (BASE_BODY, FOOT_NAMES, FORWARD_LOCAL, JOINT_NAMES, MESH_DIR, SOLE_GEOMETRY,
                              ModelConfig, Walker4Config, taxel_layout)
 
 
 def build_mjcf(cfg=None, robot: str = "walker4") -> str:
-    """MJCF XML for ``robot`` ("walker4" or "biped8") with config ``cfg``."""
+    """MJCF XML for ``robot`` ("walker4" or "biped10") with config ``cfg``."""
     spec = get_robot(robot)
     return spec.build_mjcf(spec.make_config(cfg))
 
@@ -27,6 +27,6 @@ def write_mjcf(path: str | Path, cfg=None, robot: str = "walker4") -> Path:
     return path
 
 
-__all__ = ["build_mjcf", "write_mjcf", "ModelConfig", "Walker4Config", "Biped8Config", "TactileConfig",
+__all__ = ["build_mjcf", "write_mjcf", "ModelConfig", "Walker4Config", "Biped10Config", "TactileConfig",
            "JOINT_NAMES", "FOOT_NAMES", "BASE_BODY", "FORWARD_LOCAL", "SOLE_GEOMETRY", "MESH_DIR",
            "taxel_layout", "taxel_name", "ROBOTS"]

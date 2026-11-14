@@ -35,6 +35,40 @@ class CommandConfig:
 
 
 @dataclass
+class CurriculumConfig:
+    """Robustness randomisation that is brought in gradually during training.
+
+    The randomisation *level* rises linearly from 0 at ``start`` to 1 at ``end``
+    (fractions of training progress, which the trainers send to the envs via
+    :meth:`BipedWalkerEnv.set_training_progress`). Level 0 is the nominal robot
+    on the nominal floor; the ranges below are those used at level 1 and shrink
+    proportionally towards nominal at lower levels.
+    """
+
+    start: float = 0.3                              # progress where robustness training begins
+    end: float = 0.8                                # progress where it reaches full strength
+    friction: Tuple[float, float] = (0.4, 1.4)      # floor/foot friction scale
+    friction_resample_steps: Optional[int] = 250    # also change the floor friction mid-episode (None = per episode)
+    mass_scale: Tuple[float, float] = (0.85, 1.15)  # independent scale on every link's mass and inertia
+    payload: Tuple[float, float] = (0.0, 0.25)      # extra mass in the body box, fraction of robot mass
+    payload_offset: float = 0.02                    # m, payload centre shifted up to this far in x and y
+
+    def level(self, progress: float) -> float:
+        if self.end <= self.start:
+            return float(progress >= self.start)
+        return float(np.clip((progress - self.start) / (self.end - self.start), 0.0, 1.0))
+
+
+def curriculum_level(curriculum, progress: float) -> float:
+    """Level for ``progress`` given a :class:`CurriculumConfig`, dict or None."""
+    if curriculum is None or curriculum is False:
+        return 0.0
+    cfg = curriculum if isinstance(curriculum, CurriculumConfig) else CurriculumConfig(
+        **({} if curriculum is True else curriculum))
+    return cfg.level(progress)
+
+
+@dataclass
 class RewardConfig:
     """Weights of the reward terms (all per control step)."""
 
@@ -48,12 +82,23 @@ class RewardConfig:
     tilt: float = 0.5             # * (1 - up_z)
     fall: float = 5.0             # one-off penalty on falling
 
+    # --- gait shaping: feet should lift, swing and land rather than slide ("scooting").
+    # A foot is in contact when its tactile array carries > contact_threshold x body weight.
+    slip: float = 0.5             # stance feet sliding: sum_contact min(|v_foot| / foot_v_ref, 1)^2
+    clearance: float = 0.5        # moving feet kept low: sum (1 - min(h / clearance_target, 1))^2 * min(|v_foot| / foot_v_ref, 1)
+    air_time: float = 1.0         # each touchdown: min(air time, 2 x target) - air_time_target
+    gait: float = 0.5             # feet match the gait clock (only with gait_clock=True)
+    contact_threshold: float = 0.05
+    clearance_target: float = 0.02   # m, swing foot height above its standing height
+    air_time_target: float = 0.25    # s
+    foot_v_ref: float = 0.1          # m/s, foot speed scale
+
 
 class BipedWalkerEnv(gym.Env):
     """Command-conditioned locomotion for the tactile-footed bipeds.
 
     ``robot`` picks the body: ``"walker4"`` (4-DoF walker, the default) or
-    ``"biped8"`` (8-DoF servo-bracket biped).
+    ``"biped10"`` (10-DoF servo-bracket biped).
 
     **Action** (n_joints,): servo targets in ``[-1, 1]``, mapped to
     ``default_pose + action * action_scale`` (see ``self.robot.joint_names``
@@ -64,6 +109,8 @@ class BipedWalkerEnv(gym.Env):
     * tactile forces, 2 feet x 3 x 5 taxels = 30 values, scaled by
       ``tactile_max_force`` and clipped to [0, 1];
     * the motor positions in the same normalised units as the action;
+    * the body IMU (``include_imu``): gyro / 4 rad/s and accelerometer / g,
+      3 axes each, in the body frame;
 
     followed (if ``include_command``) by the 2 normalised command values
     ``(forward speed, yaw rate)``. The command is needed so one policy can be
@@ -71,6 +118,22 @@ class BipedWalkerEnv(gym.Env):
     fixed ``command`` if you want the observation to be exactly tactile +
     motor positions. A single frame can't reveal velocity, which is why a short
     history is stacked by default.
+
+    **Gait shaping** (to stop the policy shuffling/scooting): foot contact is read
+    from the tactile arrays; stance feet are penalised for sliding, moving feet
+    for staying close to the floor, and each touchdown after a proper swing is
+    rewarded. With ``gait_clock=True`` a left/right stepping clock of period
+    ``gait_period`` (robot default if None) is added to the observation as
+    (sin, cos) and the feet are rewarded for matching it (each foot in stance
+    for ``stance_fraction`` of the cycle, half a cycle apart).
+    ``action_smoothing`` in [0, 1) low-pass filters the servo targets.
+
+    **Robustness curriculum** (``curriculum=True`` or a :class:`CurriculumConfig`
+    / dict): floor friction (also changing mid-episode), link masses and a
+    payload in the body box are randomised, ramping from none to full strength
+    as training progresses (the trainers call :meth:`set_training_progress`).
+    ``randomization_level`` fixes the level instead, e.g. ``1.0`` to evaluate
+    robustness.
 
     **Reward**: tracking of the commanded forward speed and yaw rate, minus
     the absolute mechanical power of the servos (efficiency), action jerk,
@@ -87,9 +150,17 @@ class BipedWalkerEnv(gym.Env):
         frame_skip: int = 10,
         history_len: int = 3,
         include_command: bool = True,
+        gait_clock: bool = False,
+        gait_period: Optional[float] = None,
+        stance_fraction: float = 0.6,
+        action_smoothing: float = 0.0,
         tactile_max_force: Optional[float] = None,
         tactile_noise: float = 0.0,
         joint_noise: float = 0.0,
+        include_imu: bool = True,
+        imu_noise: float = 0.0,
+        curriculum: Optional[CurriculumConfig | Dict[str, Any] | bool] = None,
+        randomization_level: Optional[float] = None,
         reset_noise: float = 0.05,
         randomize_dynamics: bool = False,
         max_tilt: float = 0.9,
@@ -117,6 +188,20 @@ class BipedWalkerEnv(gym.Env):
         self.joint_noise = float(joint_noise)
         self.reset_noise = float(reset_noise)
         self.randomize_dynamics = randomize_dynamics
+        self.include_imu = bool(include_imu)
+        self.imu_noise = float(imu_noise)
+        if curriculum is True:
+            curriculum = CurriculumConfig()
+        elif isinstance(curriculum, dict):
+            curriculum = CurriculumConfig(**curriculum)
+        self.curriculum: Optional[CurriculumConfig] = curriculum or None
+        # a fixed level overrides the curriculum; randomize_dynamics=True (old flag) means full strength
+        self.fixed_level = (float(randomization_level) if randomization_level is not None
+                            else 1.0 if randomize_dynamics else None)
+        if self.fixed_level is not None and self.curriculum is None:
+            self.curriculum = CurriculumConfig()
+        self.training_progress = 0.0
+        self._rand = {"level": 0.0, "friction": 1.0, "mass_scale": 1.0, "payload": 0.0}
         self.min_up_z = math.cos(max_tilt)
         self.cmd_cfg = (commands if isinstance(commands, CommandConfig)
                         else CommandConfig(**{**defaults.get("commands", {}), **(commands or {})}))
@@ -131,8 +216,14 @@ class BipedWalkerEnv(gym.Env):
 
         self.n_taxels = int(np.prod(self.robot.tactile_shape))
         self.n_joints = self.robot.n_joints
-        self.frame_size = self.n_taxels + self.n_joints
-        obs_dim = self.frame_size * self.history_len + (2 if include_command else 0)
+        self.n_imu = 6 if include_imu else 0
+        self.frame_size = self.n_taxels + self.n_joints + self.n_imu
+        self.gait_clock = bool(gait_clock)
+        self.gait_period = float(gait_period or defaults.get("gait_period", 0.7))
+        self.stance_fraction = float(stance_fraction)
+        self.action_smoothing = float(action_smoothing)
+        obs_dim = (self.frame_size * self.history_len + (2 if include_command else 0)
+                   + (2 if self.gait_clock else 0))
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(-1.0, 1.0, shape=(self.n_joints,), dtype=np.float32)
 
@@ -141,6 +232,7 @@ class BipedWalkerEnv(gym.Env):
         self._nominal_friction = self.model.geom_friction.copy()
         self._nominal_mass = self.model.body_mass.copy()
         self._nominal_inertia = self.model.body_inertia.copy()
+        self._nominal_ipos = self.model.body_ipos.copy()
 
         self.render_mode = render_mode
         self.width, self.height = width, height
@@ -191,12 +283,20 @@ class BipedWalkerEnv(gym.Env):
         q = self.robot.joint_positions_normalized()
         if self.joint_noise > 0:
             q = q + self.np_random.normal(0.0, self.joint_noise, q.shape)
-        return np.concatenate([tac, q])
+        if not self.include_imu:
+            return np.concatenate([tac, q])
+        imu = self.robot.imu() / np.array([4.0, 4.0, 4.0, 9.81, 9.81, 9.81])   # gyro / 4 rad/s, accel / g
+        if self.imu_noise > 0:
+            imu = imu + self.np_random.normal(0.0, self.imu_noise, imu.shape)
+        return np.concatenate([tac, q, imu])
 
     def _obs(self) -> np.ndarray:
         parts = list(self._history)
         if self.include_command:
             parts.append(self.command / self._cmd_scale)
+        if self.gait_clock:
+            ang = 2 * math.pi * self._phase
+            parts.append(np.array([math.sin(ang), math.cos(ang)]))
         return np.concatenate(parts).astype(np.float32)
 
     def obs_layout(self) -> Dict[str, slice]:
@@ -204,22 +304,82 @@ class BipedWalkerEnv(gym.Env):
         start = self.frame_size * (self.history_len - 1)
         out = {
             "tactile": slice(start, start + self.n_taxels),
-            "joints": slice(start + self.n_taxels, start + self.frame_size),
+            "joints": slice(start + self.n_taxels, start + self.n_taxels + self.n_joints),
         }
+        if self.include_imu:
+            out["imu"] = slice(start + self.n_taxels + self.n_joints, start + self.frame_size)
+        end = self.frame_size * self.history_len
         if self.include_command:
-            out["command"] = slice(self.frame_size * self.history_len, None)
+            out["command"] = slice(end, end + 2)
+            end += 2
+        if self.gait_clock:
+            out["gait_clock"] = slice(end, end + 2)
         return out
+
+    # ------------------------------------------------------ robustness curriculum
+    def set_training_progress(self, progress: float) -> float:
+        """Tell the env how far training is (0..1); returns the randomisation level.
+
+        Called by the trainers (``env_method`` for vector envs); the level takes
+        effect from the next reset.
+        """
+        self.training_progress = float(progress)
+        return self.randomization_level
+
+    @property
+    def randomization_level(self) -> float:
+        if self.fixed_level is not None:
+            return self.fixed_level
+        return self.curriculum.level(self.training_progress) if self.curriculum else 0.0
+
+    @staticmethod
+    def _scaled(rng, lo_hi, level):
+        lo, hi = lo_hi
+        return rng.uniform(1 + level * (lo - 1), 1 + level * (hi - 1))
+
+    def _set_friction(self, rng, level):
+        f = self._scaled(rng, self.curriculum.friction, level) if level > 0 else 1.0
+        # MuJoCo uses the larger friction of the two geoms in contact, so scale them all
+        self.model.geom_friction[:, 0] = self._nominal_friction[:, 0] * f
+        self._rand["friction"] = f
+
+    def _apply_randomization(self, rng) -> None:
+        level = self.randomization_level
+        m = self.model
+        m.body_mass[:] = self._nominal_mass
+        m.body_inertia[:] = self._nominal_inertia
+        m.body_ipos[:] = self._nominal_ipos
+        self._rand.update(level=level, friction=1.0, mass_scale=1.0, payload=0.0)
+        if level <= 0 or self.curriculum is None:
+            m.geom_friction[:] = self._nominal_friction
+        else:
+            c = self.curriculum
+            self._set_friction(rng, level)
+            scale = np.array([self._scaled(rng, c.mass_scale, level) for _ in range(m.nbody)])
+            scale[0] = 1.0                                   # world body
+            m.body_mass[:] = self._nominal_mass * scale
+            m.body_inertia[:] = self._nominal_inertia * scale[:, None]
+            # payload in the body box: extra mass at an offset centre
+            b = self.robot.base_id
+            total = float(self._nominal_mass.sum())
+            p = rng.uniform(*c.payload) * level * total
+            if p > 0:
+                m0 = m.body_mass[b]
+                off = np.array([*rng.uniform(-1, 1, 2) * c.payload_offset * level, 0.0])
+                m.body_ipos[b] = (m0 * self._nominal_ipos[b] + p * (self._nominal_ipos[b] + off)) / (m0 + p)
+                m.body_inertia[b] *= (m0 + p) / m0
+                m.body_mass[b] = m0 + p
+            self._rand.update(mass_scale=float(m.body_mass[1:].sum() / self._nominal_mass[1:].sum()),
+                              payload=float(p))
+        mujoco.mj_setConst(m, self.data)
+        self.robot.total_mass = float(m.body_subtreemass[self.robot.base_id])
 
     # ---------------------------------------------------------------- reset
     def reset(self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None):
         super().reset(seed=seed)
         options = options or {}
         rng = self.np_random
-        if self.randomize_dynamics:
-            self.model.geom_friction[:] = self._nominal_friction * rng.uniform(0.7, 1.3)
-            scale = rng.uniform(0.85, 1.15, size=self.model.nbody)
-            self.model.body_mass[:] = self._nominal_mass * scale
-            self.model.body_inertia[:] = self._nominal_inertia * scale[:, None]
+        self._apply_randomization(rng)
 
         noise = rng.uniform(-self.reset_noise, self.reset_noise, self.n_joints) * self.robot.action_scale
         self.robot.reset(joint_positions=self.robot.default_pose + noise, settle_steps=50)
@@ -235,6 +395,14 @@ class BipedWalkerEnv(gym.Env):
         self._ep = {"return": 0.0, "v": 0.0, "v_err": 0.0, "w": 0.0, "w_err": 0.0, "power": 0.0, "fell": 0.0}
         self._ep_terms: Dict[str, float] = {}
         self._prev_action = self.robot.joint_positions_normalized()
+        self._action = self._prev_action.copy()            # smoothed action actually applied
+        self._phase = float(rng.random()) if self.gait_clock else 0.0
+        self._weight = self.robot.total_mass * 9.81
+        self._contact = self.robot.foot_forces() > self.rew_cfg.contact_threshold * self._weight
+        self._air = np.zeros(2)
+        self._foot_ref_z = self.robot.foot_positions()[:, 2].copy()
+        self._gait = {"double": 0, "single": 0, "flight": 0, "touchdowns": 0, "slip": 0.0, "slip_n": 0,
+                      "swing_h": 0.0, "swing_n": 0, "air": 0.0}
         self._start_xy = self.robot.com_position()[:2]
         self._start_base_z = self.robot.base_position()[2]
         frame = self._frame()
@@ -251,8 +419,13 @@ class BipedWalkerEnv(gym.Env):
         r = self.robot
         com0 = r.com_position()[:2]
         h0 = r.heading()
+        feet0 = r.foot_positions()
 
-        r.set_normalized(a)
+        if self.action_smoothing > 0:
+            self._action = self.action_smoothing * self._action + (1 - self.action_smoothing) * a
+        else:
+            self._action = a
+        r.set_normalized(self._action)
         energy = 0.0
         for _ in range(self.frame_skip):
             mujoco.mj_step(self.model, self.data)
@@ -273,6 +446,43 @@ class BipedWalkerEnv(gym.Env):
         up_z = r.up_z()
 
         c = self.rew_cfg
+        # ---- feet: contact from the tactile arrays, speed and height from the sole bodies
+        feet1 = r.foot_positions()
+        foot_speed = np.linalg.norm(feet1[:, :2] - feet0[:, :2], axis=1) / self.dt
+        height = np.maximum(feet1[:, 2] - self._foot_ref_z, 0.0)
+        contact = r.foot_forces() > c.contact_threshold * self._weight
+        touchdown = contact & ~self._contact
+        self._air += self.dt
+        air_at_touchdown = self._air[touchdown].copy()
+        self._air[contact] = 0.0
+        self._contact = contact
+        moving = abs(self.command[0]) > 0.005 or abs(self.command[1]) > 0.05
+        speed_n = np.minimum(foot_speed / c.foot_v_ref, 1.0)
+        gait_terms = {
+            "slip": -c.slip * float(np.sum(contact * speed_n ** 2)),
+            "clearance": -c.clearance * float(np.sum((1 - np.minimum(height / c.clearance_target, 1.0)) ** 2
+                                                     * speed_n * ~contact)),
+            "air_time": c.air_time * float(np.sum(np.minimum(air_at_touchdown, 2 * c.air_time_target)
+                                                  - c.air_time_target)) * moving,
+        }
+        if self.gait_clock:
+            self._phase = (self._phase + self.dt / self.gait_period) % 1.0
+            if moving:
+                want = np.array([self._phase < self.stance_fraction,
+                                 (self._phase + 0.5) % 1.0 < self.stance_fraction])
+            else:
+                want = np.array([True, True])
+            gait_terms["gait"] = c.gait * float(np.mean(contact == want))
+        g = self._gait
+        n_contact = int(contact.sum())
+        g["double" if n_contact == 2 else "single" if n_contact == 1 else "flight"] += 1
+        g["touchdowns"] += int(touchdown.sum())
+        g["air"] += float(air_at_touchdown.sum())
+        g["slip"] += float(np.sum(foot_speed * contact))
+        g["slip_n"] += n_contact
+        g["swing_h"] += float(np.sum(height * ~contact))
+        g["swing_n"] += 2 - n_contact
+
         terms = {
             "lin_vel": c.lin_vel * math.exp(-((v_fwd - self.command[0]) / c.lin_sigma) ** 2),
             "yaw_vel": c.yaw_vel * math.exp(-((yaw_rate - self.command[1]) / c.yaw_sigma) ** 2),
@@ -280,6 +490,7 @@ class BipedWalkerEnv(gym.Env):
             "action_rate": -c.action_rate * float(np.sum((a - self._prev_action) ** 2)),
             "lateral": -c.lateral * v_lat ** 2,
             "tilt": -c.tilt * (1.0 - up_z),
+            **gait_terms,
         }
         fallen = up_z < self.min_up_z or r.base_position()[2] < 0.6 * self._start_base_z
         if fallen:
@@ -299,10 +510,15 @@ class BipedWalkerEnv(gym.Env):
 
         if self.cmd_cfg.resample_steps and self._steps % self.cmd_cfg.resample_steps == 0:
             self.command = self.sample_command()
+        c_cfg = self.curriculum
+        if (c_cfg is not None and self._rand["level"] > 0 and c_cfg.friction_resample_steps
+                and self._steps % c_cfg.friction_resample_steps == 0):
+            self._set_friction(self.np_random, self._rand["level"])   # the floor changes underfoot
 
         self._history.append(self._frame())
         info = self._info(v_fwd, v_lat, yaw_rate, power)
         info["reward_terms"] = terms
+        info["foot_contact"] = contact.copy()
         info["episode_summary"] = self.episode_summary()
         if self.render_mode == "human":
             self.render()
@@ -328,6 +544,19 @@ class BipedWalkerEnv(gym.Env):
             "mean_forward_velocity": ep["v"] / n, "forward_velocity_error": ep["v_err"] / n,
             "mean_yaw_rate": ep["w"] / n, "yaw_rate_error": ep["w_err"] / n,
             "mean_power": ep["power"] / n,
+            # gait diagnostics: a shuffle shows up as high double support, few touchdowns and slip
+            "double_support_frac": self._gait["double"] / n,
+            "single_support_frac": self._gait["single"] / n,
+            "flight_frac": self._gait["flight"] / n,
+            "step_rate": self._gait["touchdowns"] / max(self._steps * self.dt, 1e-9),
+            "mean_air_time": self._gait["air"] / max(self._gait["touchdowns"], 1),
+            "stance_slip": self._gait["slip"] / max(self._gait["slip_n"], 1),
+            "swing_height": self._gait["swing_h"] / max(self._gait["swing_n"], 1),
+            # robustness curriculum
+            "rand_level": self._rand["level"],
+            "friction_scale": self._rand["friction"],
+            "mass_scale": self._rand["mass_scale"],
+            "payload_kg": self._rand["payload"],
         }
         out.update({f"r_{k}": v for k, v in self._ep_terms.items()})
         return out
@@ -400,4 +629,7 @@ class BipedWalkerEnv(gym.Env):
             self._renderer = None
 
     def config_dict(self) -> Dict[str, Any]:
-        return {"robot": self.robot_name, "task": self.task, "commands": asdict(self.cmd_cfg), "rewards": asdict(self.rew_cfg)}
+        return {"robot": self.robot_name, "task": self.task, "include_imu": self.include_imu,
+                "curriculum": asdict(self.curriculum) if self.curriculum else None,
+                "randomization_level": self.fixed_level, "gait_clock": self.gait_clock,
+                "gait_period": self.gait_period, "action_smoothing": self.action_smoothing, "commands": asdict(self.cmd_cfg), "rewards": asdict(self.rew_cfg)}

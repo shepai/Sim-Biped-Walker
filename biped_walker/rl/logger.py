@@ -2,7 +2,7 @@
 
 Every call to ``agent.train(...)`` creates ``logs/<run_name>/``::
 
-    logs/20261114-091800_biped8_ppo_forward/
+    logs/20261114-091800_biped10_ppo_forward/
       config.json        agent, env and training settings
       metrics.csv        one row per update (PPO rollout / ES generation): rewards,
       metrics.jsonl      episode stats over the last 100 episodes, losses, fps ...
@@ -35,7 +35,8 @@ from ..utils.progress import ProgressBar
 
 # Shown in the progress bar, in this order, when present.
 BAR_KEYS = (("ep_return_mean", "R"), ("ep_length_mean", "len"), ("ep_distance_mean", "dist"),
-            ("ep_fall_rate", "fall"), ("ep_cost_of_transport_mean", "CoT"), ("fps", "fps"))
+            ("ep_fall_rate", "fall"), ("ep_step_rate_mean", "steps/s"), ("ep_stance_slip_mean", "slip"), ("curriculum_level", "robust"),
+            ("ep_cost_of_transport_mean", "CoT"), ("fps", "fps"))
 
 
 class _CSV:
@@ -176,7 +177,9 @@ class RunLogger:
         if not self.recent:
             return {}
         keys = ("return", "length", "distance", "energy", "cost_of_transport", "mean_forward_velocity",
-                "forward_velocity_error", "mean_yaw_rate", "yaw_rate_error", "mean_power")
+                "forward_velocity_error", "mean_yaw_rate", "yaw_rate_error", "mean_power",
+                "double_support_frac", "single_support_frac", "flight_frac", "step_rate", "mean_air_time",
+                "stance_slip", "swing_height", "rand_level", "friction_scale", "mass_scale", "payload_kg")
         out = {f"ep_{k}_mean": _finite_mean(e.get(k) for e in self.recent) for k in keys}
         out["ep_return_std"] = float(np.std([e["return"] for e in self.recent]))
         out["ep_fall_rate"] = _finite_mean(float(e.get("fell", 0)) for e in self.recent)
@@ -290,8 +293,17 @@ class RunLogger:
                   ("ep_distance_mean", "distance", "distance per episode (m)"),
                   ("ep_forward_velocity_error_mean", "forward_velocity_error", "|v - v_cmd| (m/s)"),
                   ("ep_cost_of_transport_mean", "cost_of_transport", "cost of transport"),
-                  ("ep_fall_rate", "fell", "fall rate")]
-        fig, axes = plt.subplots(2, 3, figsize=(14, 7.5))
+                  ("ep_fall_rate", "fell", "fall rate"),
+                  ("ep_step_rate_mean", "step_rate", "touchdowns per second"),
+                  ("ep_double_support_frac_mean", "double_support_frac", "double-support fraction"),
+                  ("ep_stance_slip_mean", "stance_slip", "stance-foot slip (m/s)"),
+                  ("ep_swing_height_mean", "swing_height", "swing-foot height (m)"),
+                  ("ep_mean_air_time_mean", "mean_air_time", "air time per step (s)"),
+                  ("ep_mean_power_mean", "mean_power", "mean servo power (W)"),
+                  ("ep_friction_scale_mean", "friction_scale", "floor friction scale (curriculum)"),
+                  ("ep_payload_kg_mean", "payload_kg", "payload (kg, curriculum)"),
+                  ("ep_rand_level_mean", "rand_level", "robustness level")]
+        fig, axes = plt.subplots(3, 5, figsize=(22, 10.5))
         for ax, (key, ep_key, title) in zip(axes.ravel(), panels):
             if eps and ep_key in eps[0]:
                 et = [e["timesteps"] for e in eps]

@@ -1,9 +1,9 @@
-"""Matplotlib renders of the 8-DoF biped (the assembled robot and a parts sheet).
+"""Matplotlib renders of the 10-DoF biped (the assembled robot and a parts sheet).
 
 These are CAD renders from the same meshes and layout the simulator loads;
 they don't need MuJoCo or a GPU.
 
-    python -m biped_walker.cad.render            # writes docs/biped8*.png
+    python -m biped_walker.cad.render            # writes docs/biped10*.png
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 import numpy as np
 
-from .biped8_design import MESH_DIR, MODEL_JSON, STAND_POSE, posed_parts
+from .biped10_design import MESH_DIR, MODEL_JSON, STAND_POSE, posed_parts
 from .mesh import read_stl, transform
 
 LIGHT = np.array([0.45, -0.35, 0.82])
@@ -88,7 +88,7 @@ def render_parts_sheet(path: str | Path, dpi: int = 120) -> Path:
 
     model = json.loads(MODEL_JSON.read_text())
     meshes = _load(model)
-    names = ["mg996r", "bracket_multi", "u_bracket_24", "u_bracket_36", "servo_horn", "foot_plate"]
+    names = ["mg996r", "bracket_multi", "u_bracket_30", "u_bracket_42", "yaw_plate", "foot_plate"]
     fig, axes = plt.subplots(2, 3, figsize=(12, 8.4), dpi=dpi)
     for ax, name in zip(axes.ravel(), names):
         m = meshes[name].copy()
@@ -118,6 +118,6 @@ def render_parts_sheet(path: str | Path, dpi: int = 120) -> Path:
 
 if __name__ == "__main__":
     docs = Path(__file__).resolve().parents[2] / "docs"
-    print(render_robot(docs / "biped8.png"))
-    print(render_robot(docs / "biped8_side.png", azim=-100, elev=6, width=800))
-    print(render_parts_sheet(docs / "biped8_parts.png"))
+    print(render_robot(docs / "biped10.png"))
+    print(render_robot(docs / "biped10_side.png", azim=-100, elev=6, width=800))
+    print(render_parts_sheet(docs / "biped10_parts.png"))

@@ -140,6 +140,7 @@ class PPOAgent(BaseRLAgent):
             def __init__(self):
                 super().__init__()
                 self.rollouts = 0
+                self.level = 0.0
 
             def _on_step(self) -> bool:
                 dones = self.locals.get("dones")
@@ -150,6 +151,13 @@ class PPOAgent(BaseRLAgent):
                 logger.advance(self.num_timesteps)
                 return True
 
+            def _on_rollout_start(self) -> None:
+                # robustness curriculum: tell every env how far training is
+                progress = (self.num_timesteps - start) / max(int(total_timesteps), 1)
+                self.level = agent.curriculum_level(progress)
+                if self.level > 0 or self.rollouts == 0:
+                    self.training_env.env_method("set_training_progress", progress)
+
             def _on_rollout_end(self) -> None:
                 self.rollouts += 1
                 # SB3 records train/* during the previous update and dumps them right after this
@@ -159,6 +167,7 @@ class PPOAgent(BaseRLAgent):
                 lr = self.model.lr_schedule(self.model._current_progress_remaining)
                 row = logger.log_metrics(self.num_timesteps, {
                     "rollout": self.rollouts, "learning_rate": float(lr),
+                    "curriculum_level": self.level,
                     "policy_log_std_mean": float(self.model.policy.log_std.mean().item()),
                     "monitor_return_mean": float(np.mean([e["r"] for e in buf])) if buf else float("nan"),
                     **sb3,

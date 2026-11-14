@@ -234,6 +234,11 @@ SPEC = RobotSpec(
     foot_names=FOOT_NAMES,
     base_body=BASE_BODY,
     forward_local=FORWARD_LOCAL,
-    env_defaults={"tactile_max_force": 1.5},
+    env_defaults={
+        "tactile_max_force": 1.5,
+        "gait_period": 0.8,
+        # small robot: lower foot lift, slower feet
+        "rewards": {"clearance_target": 0.008, "air_time_target": 0.2, "foot_v_ref": 0.06},
+    },
     camera_distance=0.6,
 )

@@ -1,6 +1,6 @@
-from .walker_env import TASKS, BipedWalkerEnv, CommandConfig, RewardConfig
+from .walker_env import TASKS, BipedWalkerEnv, CommandConfig, CurriculumConfig, RewardConfig, curriculum_level
 
-__all__ = ["BipedWalkerEnv", "CommandConfig", "RewardConfig", "TASKS", "EnvFactory", "make_env"]
+__all__ = ["BipedWalkerEnv", "CommandConfig", "CurriculumConfig", "RewardConfig", "curriculum_level", "TASKS", "EnvFactory", "make_env"]
 
 DEFAULT_ENV_ID = "SimBiped-v0"
 

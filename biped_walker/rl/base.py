@@ -80,6 +80,14 @@ class BaseRLAgent(ABC):
     def make_env(self, render_mode: Optional[str] = None, **overrides):
         return self.env_factory(render_mode=render_mode, **overrides)
 
+    def curriculum_level(self, progress: float) -> float:
+        """Robustness-randomisation level the envs use at this training progress."""
+        from ..envs import curriculum_level
+
+        if self.env_kwargs.get("randomization_level") is not None:
+            return float(self.env_kwargs["randomization_level"])
+        return curriculum_level(self.env_kwargs.get("curriculum"), progress)
+
     def _start_run(self, total_timesteps: int, log_dir: Optional[str], run_name: Optional[str],
                    video_every: Optional[float], video_episodes: int, video_steps: Optional[int],
                    progress_bar: bool, start_timesteps: int = 0):
@@ -134,6 +142,9 @@ class BaseRLAgent(ABC):
             done = terminated or truncated or (max_steps is not None and steps >= max_steps)
             if on_step is not None and on_step(env, info) is False:
                 break
+        summary = info.get("episode_summary", {})
+        gait = {k: summary[k] for k in ("step_rate", "double_support_frac", "stance_slip", "swing_height",
+                                         "mean_air_time") if k in summary}
         return {
             "return": total,
             "length": steps,
@@ -142,6 +153,7 @@ class BaseRLAgent(ABC):
             "energy": info["energy"],
             "cost_of_transport": info["cost_of_transport"],
             "command": info["command"].tolist(),
+            **gait,
         }
 
     def evaluate(self, n_episodes: int = 5, deterministic: bool = True,
@@ -214,6 +226,12 @@ class BaseRLAgent(ABC):
                     print(f"episode {ep}: return={res['return']:.2f} steps={res['length']} "
                           f"distance={res['distance']:.3f} m CoT={res['cost_of_transport']:.2f} "
                           f"command={np.round(res['command'], 3).tolist()}")
+                    if "step_rate" in res:
+                        print(f"   gait: {res['step_rate']:.2f} touchdowns/s, "
+                              f"double support {100 * res['double_support_frac']:.0f}%, "
+                              f"stance slip {100 * res['stance_slip']:.1f} cm/s, "
+                              f"swing height {1000 * res['swing_height']:.1f} mm, "
+                              f"air time {res['mean_air_time']:.2f} s")
                 if show and not base.viewer_running:
                     break
         finally:

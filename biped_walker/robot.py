@@ -21,8 +21,8 @@ class Biped:
 
     ``robot="walker4"``: the original 4-DoF walker, joints
     ``(left_hip, left_ankle, right_hip, right_ankle)``.
-    ``robot="biped8"``: the 8-DoF servo-bracket biped, joints
-    ``left_{hip_roll, hip_pitch, knee, ankle_roll}`` then ``right_...``.
+    ``robot="biped10"``: the 10-DoF servo-bracket biped, joints
+    ``left_{hip_yaw, hip_roll, hip_pitch, knee, ankle_roll}`` then ``right_...``.
     ``self.joint_names`` gives the order used by every array here.
 
     Servos are position actuators, so :meth:`set_targets` takes joint angles
@@ -32,7 +32,7 @@ class Biped:
 
     Example::
 
-        bot = Biped("biped8")
+        bot = Biped("biped10")
         bot.reset()
         for t in range(1000):
             a = np.zeros(bot.n_joints)
@@ -84,7 +84,16 @@ class Biped:
                     sens_adr[f, i, j] = m.sensor_adr[sid]
                     geom_ids[f, i, j] = _id(mujoco.mjtObj.mjOBJ_GEOM, name)
         self.taxel_sensor_adr = sens_adr
+
+        def _sensor(name):
+            sid = _id(mujoco.mjtObj.mjOBJ_SENSOR, name)
+            adr, dim = m.sensor_adr[sid], m.sensor_dim[sid]
+            return np.arange(adr, adr + dim)
+
+        self.gyro_adr = _sensor("gyro")
+        self.accel_adr = _sensor("accel")
         self.taxel_geom_ids = geom_ids
+        self.foot_body_ids = np.array([_id(mujoco.mjtObj.mjOBJ_BODY, f) for f in self.foot_names])
         self._pad_rgba = m.geom_rgba[geom_ids.ravel()].copy()
 
         self.total_mass = float(m.body_subtreemass[self.base_id])
@@ -186,6 +195,22 @@ class Biped:
 
     def base_rotation(self) -> np.ndarray:
         return self.data.xmat[self.base_id].reshape(3, 3).copy()
+
+    def foot_positions(self) -> np.ndarray:
+        """World positions of the foot (sole) bodies, shape (2, 3): left, right."""
+        return self.data.xpos[self.foot_body_ids].copy()
+
+    def imu(self) -> np.ndarray:
+        """Body IMU: gyro (rad/s, 3) then accelerometer (m/s^2, 3), in the IMU frame.
+
+        The accelerometer measures proper acceleration, so standing still it
+        reads about +9.81 m/s^2 along the body's up axis, like a real MPU6050.
+        """
+        return np.concatenate([self.data.sensordata[self.gyro_adr], self.data.sensordata[self.accel_adr]])
+
+    def foot_forces(self) -> np.ndarray:
+        """Total normal force on each foot's tactile array (N), shape (2,)."""
+        return self.tactile().sum(axis=(1, 2))
 
     def com_position(self) -> np.ndarray:
         return self.data.subtree_com[self.base_id].copy()
